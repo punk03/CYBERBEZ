@@ -162,6 +162,38 @@
 
 ---
 
+### 2024-XX-XX - Этап 3: ML Engine - Машинное обучение
+
+**Время**: [будет заполнено]
+
+**Действие**: Реализация ML моделей для обнаружения аномалий и классификации атак
+
+**Файлы созданы**:
+- `backend/ml/features/extractor.py` - Извлечение признаков из логов (статистические, временные, сетевые, текстовые)
+- `backend/ml/models/anomaly_detector.py` - Anomaly detection модель (Isolation Forest)
+- `backend/ml/models/attack_classifier.py` - Attack classification модель (Random Forest)
+- `backend/ml/models/ensemble.py` - Ensemble модель для комбинации результатов
+- `backend/ml/inference/predictor.py` - Real-time inference predictor
+
+**Изменения**:
+- `backend/processing/log_processor_worker.py` - Интеграция ML prediction в pipeline обработки
+
+**Результат**: 
+- Реализовано извлечение признаков из логов (50+ признаков)
+- Создана anomaly detection модель на основе Isolation Forest
+- Создан attack classifier на основе Random Forest для классификации типов атак
+- Реализован ensemble подход для комбинации результатов моделей
+- Интегрирован real-time inference в pipeline обработки логов
+- ML prediction автоматически выполняется для каждого лога
+
+**Примечания**: 
+- Все компоненты Этапа 3 реализованы
+- ML модели готовы к обучению на реальных данных
+- Inference интегрирован в stream processing pipeline
+- Готово к следующему этапу: Система обнаружения атак
+
+---
+
 ## Шаблон для новых записей
 
 ```markdown
