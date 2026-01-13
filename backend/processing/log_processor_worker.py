@@ -101,6 +101,13 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
                             f"Automation executed for {detection.get('attack_type')}: "
                             f"{len(automation_result.get('actions', []))} actions"
                         )
+                    
+                    # Send alert notification
+                    try:
+                        from backend.alerting.notification_service import notification_service
+                        await notification_service.send_threat_alert(detection)
+                    except Exception as e:
+                        logger.error(f"Error sending alert notification: {e}", exc_info=True)
             except Exception as e:
                 logger.error(f"Error in automation: {e}", exc_info=True)
     except Exception as e:
