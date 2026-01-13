@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.common.config import settings
 from backend.common.logging import setup_logging
-from backend.api.routers import health, logs
+from backend.api.routers import health, logs, threats, automation
 from backend.processing.kafka_client import kafka_client
 from backend.processing.log_processor_worker import log_processor_worker
 
@@ -33,6 +33,8 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix=settings.API_PREFIX, tags=["health"])
 app.include_router(logs.router, prefix=settings.API_PREFIX, tags=["logs"])
+app.include_router(threats.router, prefix=settings.API_PREFIX, tags=["threats"])
+app.include_router(automation.router, prefix=settings.API_PREFIX, tags=["automation"])
 
 
 @app.on_event("startup")
