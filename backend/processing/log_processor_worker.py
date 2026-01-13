@@ -37,9 +37,8 @@ async def save_to_mongodb(log_entry: Dict[str, Any]) -> None:
 async def save_to_timescale(log_entry: Dict[str, Any]) -> None:
     """Save log entry to TimescaleDB."""
     try:
-        # This will be implemented when we create TimescaleDB models
-        # For now, just log
-        logger.debug(f"Would save to TimescaleDB: {log_entry.get('message', '')[:100]}")
+        from backend.storage.timescale import save_log_to_timescale
+        await save_log_to_timescale(log_entry)
     except Exception as e:
         logger.error(f"Error saving to TimescaleDB: {e}", exc_info=True)
 
