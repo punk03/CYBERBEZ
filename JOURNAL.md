@@ -38,6 +38,41 @@
 
 ---
 
+### 2024-XX-XX - Настройка Git и push на GitHub
+
+**Время**: [будет заполнено]
+
+**Действие**: Инициализация Git репозитория и настройка удаленного репозитория на GitHub
+
+**Файлы**:
+- `.gitignore` - Файл для игнорирования ненужных файлов в Git
+- `README.md` - Обновлен с добавлением "# CYBERBEZ"
+
+**Команды выполнены**:
+- `git init` - Инициализация репозитория
+- `git add .` - Добавление всех файлов
+- `git commit -m "Initial commit: Add project plan and journal"` - Первый коммит
+- `git commit -m "Add README.md"` - Коммит с README
+- `echo "# CYBERBEZ" >> README.md` - Добавление заголовка в README
+- `git commit -m "first commit"` - Коммит изменений README
+- `git branch -M main` - Переименование ветки в main
+- `git remote add origin https://github.com/punk03/CYBERBEZ.git` - Добавление remote
+- `git push -u origin main` - Push на GitHub
+
+**Результат**: 
+- Git репозиторий инициализирован
+- Создан .gitignore с правилами для Python, Node.js, Docker, ML моделей
+- Все файлы закоммичены
+- Код успешно запушен на GitHub: https://github.com/punk03/CYBERBEZ.git
+- Ветка main настроена для отслеживания origin/main
+
+**Примечания**: 
+- Репозиторий на GitHub: https://github.com/punk03/CYBERBEZ.git
+- Проект готов к разработке
+- Все последующие изменения будут пушиться на GitHub
+
+---
+
 ## Шаблон для новых записей
 
 ```markdown
