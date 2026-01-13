@@ -86,6 +86,23 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
                 f"Attack detected: {len(detections)} detection(s) - "
                 f"{[d.get('attack_type') for d in detections]}"
             )
+            
+            # Trigger automation for each detection
+            try:
+                from backend.automation.orchestrator import AutomationOrchestrator
+                automation = AutomationOrchestrator()
+                
+                for detection in detections:
+                    automation_result = await automation.handle_threat(detection)
+                    log_entry["automation"] = automation_result
+                    
+                    if automation_result.get("success"):
+                        logger.info(
+                            f"Automation executed for {detection.get('attack_type')}: "
+                            f"{len(automation_result.get('actions', []))} actions"
+                        )
+            except Exception as e:
+                logger.error(f"Error in automation: {e}", exc_info=True)
     except Exception as e:
         logger.warning(f"Error in attack detection: {e}")
     
