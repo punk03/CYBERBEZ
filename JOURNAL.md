@@ -194,6 +194,42 @@
 
 ---
 
+### 2024-XX-XX - Этап 4: Система обнаружения атак
+
+**Время**: [будет заполнено]
+
+**Действие**: Реализация детекторов для различных типов атак
+
+**Файлы созданы**:
+- `backend/detection/detectors/base.py` - Базовый класс детектора
+- `backend/detection/detectors/ddos_detector.py` - DDoS детектор
+- `backend/detection/detectors/malware_detector.py` - Malware детектор
+- `backend/detection/detectors/scada_detector.py` - SCADA атаки детектор
+- `backend/detection/detectors/insider_detector.py` - Insider threat детектор
+- `backend/detection/detectors/network_intrusion_detector.py` - Network intrusion детектор
+- `backend/detection/detectors/apt_detector.py` - APT детектор
+- `backend/detection/detectors/ransomware_detector.py` - Ransomware детектор
+- `backend/detection/detectors/zero_day_detector.py` - Zero-day детектор
+- `backend/detection/orchestrator.py` - Оркестратор для координации детекторов
+
+**Изменения**:
+- `backend/processing/log_processor_worker.py` - Интеграция системы обнаружения атак в pipeline
+
+**Результат**: 
+- Реализовано 8 детекторов для различных типов атак
+- Каждый детектор использует специфичные паттерны и правила
+- Детекторы интегрированы с ML prediction для повышения точности
+- Создан orchestrator для параллельного запуска всех детекторов
+- Система обнаружения интегрирована в stream processing pipeline
+- Обнаруженные атаки логируются и сохраняются в логах
+
+**Примечания**: 
+- Все детекторы реализованы и готовы к использованию
+- Система может обнаруживать множественные типы атак одновременно
+- Готово к следующему этапу: Автоматизация изоляции и failover
+
+---
+
 ## Шаблон для новых записей
 
 ```markdown
