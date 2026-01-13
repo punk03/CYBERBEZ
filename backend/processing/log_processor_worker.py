@@ -74,6 +74,21 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
     except Exception as e:
         logger.warning(f"Error in ML prediction: {e}")
     
+    # Attack detection
+    try:
+        from backend.detection.orchestrator import DetectorOrchestrator
+        orchestrator = DetectorOrchestrator()
+        detections = await orchestrator.detect(log_entry)
+        
+        if detections:
+            log_entry["detections"] = detections
+            logger.warning(
+                f"Attack detected: {len(detections)} detection(s) - "
+                f"{[d.get('attack_type') for d in detections]}"
+            )
+    except Exception as e:
+        logger.warning(f"Error in attack detection: {e}")
+    
     # Apply filters
     level_filter = LevelFilter()
     filtered = await level_filter.filter(log_entry)
