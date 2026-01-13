@@ -119,6 +119,49 @@
 
 ---
 
+### 2024-XX-XX - Этап 2: Stream Processing - Обработка в реальном времени
+
+**Время**: [будет заполнено]
+
+**Действие**: Реализация потоковой обработки данных через Kafka
+
+**Файлы созданы**:
+- `backend/processing/kafka_client.py` - Kafka client для producer и consumer
+- `backend/processing/stream_processor.py` - Stream processor для обработки данных
+- `backend/processing/log_processor_worker.py` - Worker для обработки логов из Kafka
+- `backend/processing/enrichers/base.py` - Базовый класс enricher
+- `backend/processing/enrichers/geoip.py` - GeoIP enricher для географической информации
+- `backend/processing/enrichers/threat_intel.py` - Threat intelligence enricher
+- `backend/processing/enrichers/asset_info.py` - Asset information enricher
+- `backend/processing/filters/base.py` - Базовый класс filter
+- `backend/processing/filters/level_filter.py` - Фильтр по уровню логов
+- `backend/processing/filters/source_filter.py` - Фильтр по источнику
+- `backend/processing/aggregators/time_window.py` - Агрегатор по временным окнам
+
+**Изменения**:
+- `backend/ingestion/collectors/base.py` - Интеграция с Kafka для отправки логов
+- `backend/api/routers/logs.py` - Отправка логов в Kafka при получении через API
+- `backend/api/main.py` - Запуск Kafka producer и log processor worker при старте
+
+**Результат**: 
+- Реализован Kafka client с поддержкой producer и consumer
+- Создан stream processor для обработки данных в реальном времени
+- Реализованы enrichers: GeoIP, Threat Intelligence, Asset Info
+- Реализованы фильтры: по уровню логов, по источнику
+- Реализован агрегатор по временным окнам
+- Интегрирована отправка логов в Kafka из коллекторов и API
+- Создан worker для обработки логов из Kafka с применением enrichers и фильтров
+- Логи автоматически обогащаются и фильтруются при обработке
+
+**Примечания**: 
+- Все компоненты Этапа 2 реализованы
+- Kafka используется для streaming обработки данных
+- Enrichers добавляют контекст к логам (GeoIP, threat intel, asset info)
+- Фильтры позволяют отбрасывать ненужные логи
+- Готово к следующему этапу: ML Engine
+
+---
+
 ## Шаблон для новых записей
 
 ```markdown

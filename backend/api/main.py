@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.common.config import settings
 from backend.common.logging import setup_logging
 from backend.api.routers import health, logs
+from backend.processing.kafka_client import kafka_client
+from backend.processing.log_processor_worker import log_processor_worker
 
 # Setup logging
 setup_logging(settings.LOG_LEVEL)
@@ -39,12 +41,24 @@ async def startup_event():
     print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     print(f"Environment: {settings.APP_ENV}")
     print(f"API available at: http://{settings.API_HOST}:{settings.API_PORT}{settings.API_PREFIX}")
+    
+    # Start Kafka producer
+    await kafka_client.start_producer()
+    
+    # Start log processor worker
+    await log_processor_worker.start()
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Shutdown event handler."""
     print(f"Shutting down {settings.APP_NAME}")
+    
+    # Stop log processor worker
+    await log_processor_worker.stop()
+    
+    # Stop Kafka producer
+    await kafka_client.stop_producer()
 
 
 if __name__ == "__main__":
