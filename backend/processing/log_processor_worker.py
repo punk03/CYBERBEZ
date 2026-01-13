@@ -67,7 +67,7 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
         log_entry = await threat_intel_enricher.enrich(log_entry)
         
         asset_info_enricher = AssetInfoEnricher()
-        log_entry = await asset_info_enrich(log_entry)
+        log_entry = await asset_info_enricher.enrich(log_entry)
         
         # ML prediction
         ml_start = time.time()
