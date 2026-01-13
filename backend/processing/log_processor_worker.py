@@ -58,6 +58,22 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
     asset_info_enricher = AssetInfoEnricher()
     log_entry = await asset_info_enricher.enrich(log_entry)
     
+    # ML prediction
+    try:
+        from backend.ml.inference.predictor import MLPredictor
+        predictor = MLPredictor()
+        ml_prediction = await predictor.predict(log_entry)
+        log_entry["ml_prediction"] = ml_prediction
+        
+        # If threat detected, log warning
+        if ml_prediction.get("is_threat"):
+            logger.warning(
+                f"Threat detected: {ml_prediction.get('attack_type')} "
+                f"(confidence: {ml_prediction.get('confidence', 0):.2f})"
+            )
+    except Exception as e:
+        logger.warning(f"Error in ML prediction: {e}")
+    
     # Apply filters
     level_filter = LevelFilter()
     filtered = await level_filter.filter(log_entry)
