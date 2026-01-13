@@ -13,6 +13,13 @@ from backend.storage.mongodb import get_mongodb_database
 from backend.storage.database import get_db
 from backend.common.config import settings
 from backend.common.logging import get_logger
+from backend.monitoring.metrics import (
+    record_log_processed,
+    record_threat_detected,
+    record_ml_prediction,
+    record_automation_action,
+)
+import time
 
 logger = get_logger(__name__)
 
@@ -48,82 +55,128 @@ async def process_log_entry(log_entry: Dict[str, Any], key: str = None) -> Dict[
     Returns:
         Processed log entry
     """
-    # Apply enrichers
-    geoip_enricher = GeoIPEnricher()
-    log_entry = await geoip_enricher.enrich(log_entry)
+    start_time = time.time()
+    source = log_entry.get("source", "unknown")
     
-    threat_intel_enricher = ThreatIntelEnricher()
-    log_entry = await threat_intel_enricher.enrich(log_entry)
-    
-    asset_info_enricher = AssetInfoEnricher()
-    log_entry = await asset_info_enricher.enrich(log_entry)
-    
-    # ML prediction
     try:
-        from backend.ml.inference.predictor import MLPredictor
-        predictor = MLPredictor()
-        ml_prediction = await predictor.predict(log_entry)
-        log_entry["ml_prediction"] = ml_prediction
+        # Apply enrichers
+        geoip_enricher = GeoIPEnricher()
+        log_entry = await geoip_enricher.enrich(log_entry)
         
-        # If threat detected, log warning
-        if ml_prediction.get("is_threat"):
-            logger.warning(
-                f"Threat detected: {ml_prediction.get('attack_type')} "
-                f"(confidence: {ml_prediction.get('confidence', 0):.2f})"
-            )
-    except Exception as e:
-        logger.warning(f"Error in ML prediction: {e}")
-    
-    # Attack detection
-    try:
-        from backend.detection.orchestrator import DetectorOrchestrator
-        orchestrator = DetectorOrchestrator()
-        detections = await orchestrator.detect(log_entry)
+        threat_intel_enricher = ThreatIntelEnricher()
+        log_entry = await threat_intel_enricher.enrich(log_entry)
         
-        if detections:
-            log_entry["detections"] = detections
-            logger.warning(
-                f"Attack detected: {len(detections)} detection(s) - "
-                f"{[d.get('attack_type') for d in detections]}"
-            )
+        asset_info_enricher = AssetInfoEnricher()
+        log_entry = await asset_info_enrich(log_entry)
+        
+        # ML prediction
+        ml_start = time.time()
+        try:
+            from backend.ml.inference.predictor import MLPredictor
+            predictor = MLPredictor()
+            ml_prediction = await predictor.predict(log_entry)
+            log_entry["ml_prediction"] = ml_prediction
             
-            # Trigger automation for each detection
-            try:
-                from backend.automation.orchestrator import AutomationOrchestrator
-                automation = AutomationOrchestrator()
+            ml_duration = time.time() - ml_start
+            result = "threat" if ml_prediction.get("is_threat") else "normal"
+            record_ml_prediction("ensemble", result, ml_duration)
+            
+            # If threat detected, log warning
+            if ml_prediction.get("is_threat"):
+                logger.warning(
+                    f"Threat detected: {ml_prediction.get('attack_type')} "
+                    f"(confidence: {ml_prediction.get('confidence', 0):.2f})"
+                )
+        except Exception as e:
+            logger.warning(f"Error in ML prediction: {e}")
+        
+        # Attack detection
+        detection_start = time.time()
+        try:
+            from backend.detection.orchestrator import DetectorOrchestrator
+            orchestrator = DetectorOrchestrator()
+            detections = await orchestrator.detect(log_entry)
+            
+            if detections:
+                log_entry["detections"] = detections
+                detection_duration = time.time() - detection_start
                 
                 for detection in detections:
-                    automation_result = await automation.handle_threat(detection)
-                    log_entry["automation"] = automation_result
+                    record_threat_detected(
+                        detection.get("attack_type", "unknown"),
+                        detection.get("severity", "medium"),
+                        detection_duration
+                    )
+                
+                logger.warning(
+                    f"Attack detected: {len(detections)} detection(s) - "
+                    f"{[d.get('attack_type') for d in detections]}"
+                )
+                
+                # Trigger automation for each detection
+                try:
+                    from backend.automation.orchestrator import AutomationOrchestrator
+                    automation = AutomationOrchestrator()
                     
-                    if automation_result.get("success"):
-                        logger.info(
-                            f"Automation executed for {detection.get('attack_type')}: "
-                            f"{len(automation_result.get('actions', []))} actions"
-                        )
-                    
-                    # Send alert notification
-                    try:
-                        from backend.alerting.notification_service import notification_service
-                        await notification_service.send_threat_alert(detection)
-                    except Exception as e:
-                        logger.error(f"Error sending alert notification: {e}", exc_info=True)
-            except Exception as e:
-                logger.error(f"Error in automation: {e}", exc_info=True)
+                    for detection in detections:
+                        automation_start = time.time()
+                        automation_result = await automation.handle_threat(detection)
+                        automation_duration = time.time() - automation_start
+                        
+                        log_entry["automation"] = automation_result
+                        
+                        status = "success" if automation_result.get("success") else "failed"
+                        for action in automation_result.get("actions", []):
+                            record_automation_action(
+                                action.get("type", "unknown"),
+                                status,
+                                automation_duration
+                            )
+                        
+                        if automation_result.get("success"):
+                            logger.info(
+                                f"Automation executed for {detection.get('attack_type')}: "
+                                f"{len(automation_result.get('actions', []))} actions"
+                            )
+                        
+                        # Send alert notification
+                        try:
+                            from backend.alerting.notification_service import notification_service
+                            from backend.monitoring.metrics import record_alert_sent
+                            
+                            alert_result = await notification_service.send_threat_alert(detection)
+                            if alert_result.get("success"):
+                                for channel in alert_result.get("channels", {}).keys():
+                                    record_alert_sent(channel, detection.get("severity", "medium"))
+                        except Exception as e:
+                            logger.error(f"Error sending alert notification: {e}", exc_info=True)
+                except Exception as e:
+                    logger.error(f"Error in automation: {e}", exc_info=True)
+        except Exception as e:
+            logger.warning(f"Error in attack detection: {e}")
+        
+        # Apply filters
+        level_filter = LevelFilter()
+        filtered = await level_filter.filter(log_entry)
+        if filtered is None:
+            duration = time.time() - start_time
+            record_log_processed(source, "filtered", duration)
+            return None  # Entry filtered out
+        
+        # Save to databases
+        await save_to_mongodb(log_entry)
+        await save_to_timescale(log_entry)
+        
+        duration = time.time() - start_time
+        record_log_processed(source, "processed", duration)
+        
+        return log_entry
+    
     except Exception as e:
-        logger.warning(f"Error in attack detection: {e}")
-    
-    # Apply filters
-    level_filter = LevelFilter()
-    filtered = await level_filter.filter(log_entry)
-    if filtered is None:
-        return None  # Entry filtered out
-    
-    # Save to databases
-    await save_to_mongodb(log_entry)
-    await save_to_timescale(log_entry)
-    
-    return log_entry
+        duration = time.time() - start_time
+        record_log_processed(source, "error", duration)
+        logger.error(f"Error processing log entry: {e}", exc_info=True)
+        raise
 
 
 class LogProcessorWorker:

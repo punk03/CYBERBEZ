@@ -4,8 +4,7 @@ from fastapi import APIRouter, status
 from pydantic import BaseModel
 from typing import Dict, Any
 
-from backend.storage.database import engine
-from backend.storage.mongodb import get_mongodb_client
+from backend.monitoring.health import health_checker
 
 router = APIRouter()
 
@@ -20,31 +19,12 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse, status_code=status.HTTP_200_OK)
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
-    checks = {}
-    
-    # Check PostgreSQL
-    try:
-        with engine.connect() as conn:
-            conn.execute("SELECT 1")
-        checks["postgresql"] = "healthy"
-    except Exception as e:
-        checks["postgresql"] = f"unhealthy: {str(e)}"
-    
-    # Check MongoDB
-    try:
-        client = await get_mongodb_client()
-        await client.admin.command("ping")
-        checks["mongodb"] = "healthy"
-    except Exception as e:
-        checks["mongodb"] = f"unhealthy: {str(e)}"
-    
-    # Determine overall status
-    overall_status = "healthy" if all("healthy" in str(v) for v in checks.values()) else "degraded"
+    health_data = await health_checker.check_all()
     
     return HealthResponse(
-        status=overall_status,
-        version="0.1.0",
-        checks=checks,
+        status=health_data["status"],
+        version=health_data["version"],
+        checks=health_data["components"],
     )
 
 
